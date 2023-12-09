@@ -132,7 +132,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         0x32.U,
         0x20.U,
         0x33.U,
-        0x0a.U,
+        0x0a.U
       )
       for (ex <- out_seq) {
         top.io.out.valid.expect(true.B)

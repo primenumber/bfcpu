@@ -38,7 +38,28 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       top.io.ctrl.start.poke(true.B)
       top.clock.setTimeout(0)
 
-      top.clock.step(40000)
+      val status = top.io.status
+      top.clock.step(1)
+      for (i <- 1 to 1001) {
+        val pc = status.imem_addr.peek().litValue
+        val inst = status.inst.peek().litValue.toChar
+        val dp = status.dmem_read_addr.peek().litValue
+        val data = status.data.peek().litValue
+        val cb = status.bracket_count.peek().litValue
+        val isfo = status.state_onehot.finding_open.peek().litValue
+        val isfc = status.state_onehot.finding_close.peek().litValue
+        val isfetch = status.state_onehot.fetch.peek().litValue
+        val isexec = status.state_onehot.executing.peek().litValue
+        val iswb = status.state_onehot.writeback.peek().litValue
+        if (isexec == 1 || isfc == 1 || isfo == 1) {
+          println(
+            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}w${iswb}o${isfo}c${isfc}, bc: ${cb}"
+          );
+        }
+        top.clock.step(1)
+      }
+
+      top.clock.step(110000)
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")
       top.io.out.ready.poke(true.B)

@@ -11,6 +11,7 @@ class Top(memory_init_file: String) extends Module {
     val in = Flipped(Decoupled(UInt(WORD_BITS.W)))
     val out = Decoupled(UInt(WORD_BITS.W))
     val status = new StatusReg()
+    val imem_write = new WritePortIO(WORD_BITS, IMEM_ADDR_SIZE)
   })
 
   val imem = Module(
@@ -29,9 +30,7 @@ class Top(memory_init_file: String) extends Module {
   io.status <> core.io.status
 
   // imem write is not used yet
-  imem.io.write.addr := 0.U
-  imem.io.write.bits := 0.U
-  imem.io.write.enable := false.B
+  io.imem_write <> imem.io.write
 }
 
 object Top {

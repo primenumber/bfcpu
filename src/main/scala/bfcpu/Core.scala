@@ -5,8 +5,8 @@ import chisel3.util._
 
 object BFCPU {
   object State extends ChiselEnum {
-    val sReset, sReady, sFetch, sExecuting, sWriteback, sStartFindOpen,
-        sStartFindClose, sFindingOpen, sFindingClose, sFinished =
+    val sReset, sReady, sFetch, sExecuting, sWriteback, sStartFindBracket,
+        sFindingBracket, sFinished =
       Value
   }
 }
@@ -25,8 +25,8 @@ class StateOneHot extends Bundle {
   val fetch = Output(Bool())
   val executing = Output(Bool())
   val writeback = Output(Bool())
-  val finding_open = Output(Bool())
-  val finding_close = Output(Bool())
+  val start_find_bracket = Output(Bool())
+  val finding_bracket = Output(Bool())
   val finished = Output(Bool())
 }
 
@@ -66,6 +66,7 @@ class Core extends Module {
   val reg_dmem_write_enable = RegInit(false.B)
   val reg_dmem_write_bits = RegInit(0.U(WORD_BITS.W))
   val reg_count_bracket = RegInit(0.U(IMEM_ADDR_SIZE.W))
+  val reg_finding_bracket = RegInit(0.U(WORD_BITS.W))
   val reg_finished = RegInit(false.B)
 
   val reg_imem_addr_delay1 = RegNext(reg_imem_addr)
@@ -79,23 +80,11 @@ class Core extends Module {
   val output_valid = (state === sExecuting && inst === Insts.PERIOD)
   val block = inst === Insts.COMMA && !io.in.valid
 
-  val finding_bracket = MuxCase(
-    0.U,
-    Seq(
-      (state === sStartFindOpen) -> Insts.OPEN,
-      (state === sStartFindClose) -> Insts.CLOSE,
-      (state === sFindingOpen) -> Insts.OPEN,
-      (state === sFindingClose) -> Insts.CLOSE
-    )
-  )
-
   val anti_bracket = MuxCase(
     0.U,
     Seq(
-      (state === sStartFindOpen) -> Insts.CLOSE,
-      (state === sStartFindClose) -> Insts.OPEN,
-      (state === sFindingOpen) -> Insts.CLOSE,
-      (state === sFindingClose) -> Insts.OPEN
+      (reg_finding_bracket === Insts.OPEN) -> Insts.CLOSE,
+      (reg_finding_bracket === Insts.CLOSE) -> Insts.OPEN
     )
   )
 
@@ -119,15 +108,14 @@ class Core extends Module {
   val imem_addr_next = MuxCase(
     imem_addr_p1,
     Seq(
-      (state === sStartFindOpen) -> imem_addr_m1,
-      (state === sFindingOpen) -> imem_addr_m1
+      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1,
     )
   )
 
   val count_bracket_next = MuxCase(
     reg_count_bracket,
     Seq(
-      (inst === finding_bracket) -> (reg_count_bracket - 1.U),
+      (inst === reg_finding_bracket) -> (reg_count_bracket - 1.U),
       (inst === anti_bracket) -> (reg_count_bracket + 1.U)
     )
   )
@@ -158,8 +146,8 @@ class Core extends Module {
   io.status.state_onehot.fetch := state === sFetch
   io.status.state_onehot.executing := state === sExecuting
   io.status.state_onehot.writeback := state === sWriteback
-  io.status.state_onehot.finding_open := state === sFindingOpen
-  io.status.state_onehot.finding_close := state === sFindingClose
+  io.status.state_onehot.start_find_bracket := state === sStartFindBracket
+  io.status.state_onehot.finding_bracket := state === sFindingBracket
   io.status.state_onehot.finished := state === sFinished
   reg_finished := (state === sFinished)
 
@@ -186,12 +174,14 @@ class Core extends Module {
         when(inst === 0.U) {
           state := sFinished
         }.elsewhen(inst === Insts.OPEN && data === 0.U) {
-          state := sStartFindClose
+          state := sStartFindBracket
           reg_count_bracket := 1.U
+          reg_finding_bracket := Insts.CLOSE
           reg_imem_addr := imem_addr_p1
         }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
-          state := sStartFindOpen
+          state := sStartFindBracket
           reg_count_bracket := 1.U
+          reg_finding_bracket := Insts.OPEN
           reg_imem_addr := imem_addr_m1
         }.elsewhen(data_next_valid) {
           state := sWriteback
@@ -208,29 +198,16 @@ class Core extends Module {
         reg_imem_addr := imem_addr_next
         reg_dmem_read_addr := dmem_addr_next
       }
-      is(sStartFindOpen) {
-        state := sFindingOpen
+      is(sStartFindBracket) {
+        state := sFindingBracket
         reg_imem_addr := imem_addr_next
       }
-      is(sStartFindClose) {
-        state := sFindingClose
-        reg_imem_addr := imem_addr_next
-      }
-      is(sFindingOpen) {
+      is(sFindingBracket) {
         when(count_bracket_next === 0.U) {
           state := sFetch
           reg_imem_addr := reg_imem_addr_delay1 + 1.U
           reg_dmem_read_addr := dmem_addr_next
-        }.otherwise {
-          reg_imem_addr := imem_addr_next
-          reg_count_bracket := count_bracket_next
-        }
-      }
-      is(sFindingClose) {
-        when(count_bracket_next === 0.U) {
-          state := sFetch
-          reg_imem_addr := reg_imem_addr_delay1 + 1.U
-          reg_dmem_read_addr := dmem_addr_next
+          reg_finding_bracket := 0.U
         }.otherwise {
           reg_imem_addr := imem_addr_next
           reg_count_bracket := count_bracket_next

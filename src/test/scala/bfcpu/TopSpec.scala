@@ -46,14 +46,14 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         val dp = status.dmem_read_addr.peek().litValue
         val data = status.data.peek().litValue
         val cb = status.bracket_count.peek().litValue
-        val isfo = status.state_onehot.finding_open.peek().litValue
-        val isfc = status.state_onehot.finding_close.peek().litValue
+        val issfb = status.state_onehot.start_find_bracket.peek().litValue
+        val isfb = status.state_onehot.finding_bracket.peek().litValue
         val isfetch = status.state_onehot.fetch.peek().litValue
         val isexec = status.state_onehot.executing.peek().litValue
         val iswb = status.state_onehot.writeback.peek().litValue
-        if (isexec == 1 || isfc == 1 || isfo == 1) {
+        if (isexec == 1 || issfb == 1 || isfb == 1) {
           println(
-            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}w${iswb}o${isfo}c${isfc}, bc: ${cb}"
+            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}w${iswb}o${issfb}c${isfb}, bc: ${cb}"
           );
         }
         top.clock.step(1)

@@ -50,16 +50,15 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         val isfb = status.state_onehot.finding_bracket.peek().litValue
         val isfetch = status.state_onehot.fetch.peek().litValue
         val isexec = status.state_onehot.executing.peek().litValue
-        val iswb = status.state_onehot.writeback.peek().litValue
         if (isexec == 1 || issfb == 1 || isfb == 1) {
           println(
-            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}w${iswb}o${issfb}c${isfb}, bc: ${cb}"
+            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}o${issfb}c${isfb}, bc: ${cb}"
           );
         }
         top.clock.step(1)
       }
 
-      top.clock.step(110000)
+      top.clock.step(60000)
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")
       top.io.out.ready.poke(true.B)

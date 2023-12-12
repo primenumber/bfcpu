@@ -5,7 +5,7 @@ import chisel3.util._
 
 object BFCPU {
   object State extends ChiselEnum {
-    val sReset, sReady, sFetch, sExecuting, sWriteback, sStartFindBracket,
+    val sReset, sReady, sFetch, sExecuting, sStartFindBracket,
         sFindingBracket, sFinished =
       Value
   }
@@ -24,7 +24,6 @@ class StateOneHot extends Bundle {
   val ready = Output(Bool())
   val fetch = Output(Bool())
   val executing = Output(Bool())
-  val writeback = Output(Bool())
   val start_find_bracket = Output(Bool())
   val finding_bracket = Output(Bool())
   val finished = Output(Bool())
@@ -145,7 +144,6 @@ class Core extends Module {
   io.status.state_onehot.ready := state === sReady
   io.status.state_onehot.fetch := state === sFetch
   io.status.state_onehot.executing := state === sExecuting
-  io.status.state_onehot.writeback := state === sWriteback
   io.status.state_onehot.start_find_bracket := state === sStartFindBracket
   io.status.state_onehot.finding_bracket := state === sFindingBracket
   io.status.state_onehot.finished := state === sFinished
@@ -169,6 +167,7 @@ class Core extends Module {
       }
       is(sFetch) {
         state := sExecuting
+        reg_dmem_write_enable := false.B
       }
       is(sExecuting) {
         when(inst === 0.U) {
@@ -184,19 +183,15 @@ class Core extends Module {
           reg_finding_bracket := Insts.OPEN
           reg_imem_addr := imem_addr_m1
         }.elsewhen(data_next_valid) {
-          state := sWriteback
+          state := sFetch
+          reg_imem_addr := imem_addr_next
+          reg_dmem_read_addr := dmem_addr_next
           reg_dmem_write_addr := reg_dmem_read_addr
           reg_dmem_write_bits := data_next
           reg_dmem_write_enable := true.B
         }.otherwise {
           // stall, nothing to do
         }
-      }
-      is(sWriteback) {
-        state := sFetch
-        reg_dmem_write_enable := false.B
-        reg_imem_addr := imem_addr_next
-        reg_dmem_read_addr := dmem_addr_next
       }
       is(sStartFindBracket) {
         state := sFindingBracket

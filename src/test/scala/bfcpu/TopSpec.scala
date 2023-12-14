@@ -61,103 +61,17 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       top.clock.step(60000)
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")
+
+      val ex_path = os.pwd / "Hanoi4.bf.out.hex"
+      val lines = os.read.lines(ex_path)
       top.io.out.ready.poke(true.B)
-      val out_seq = Seq(
-        0x41.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x32.U,
-        0x0a.U,
-        0x42.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x32.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x43.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x32.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x33.U,
-        0x20.U,
-        0x31.U,
-        0x0a.U,
-        0x42.U,
-        0x20.U,
-        0x33.U,
-        0x20.U,
-        0x32.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x32.U,
-        0x0a.U,
-        0x44.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x32.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x42.U,
-        0x20.U,
-        0x32.U,
-        0x20.U,
-        0x31.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x33.U,
-        0x20.U,
-        0x31.U,
-        0x0a.U,
-        0x43.U,
-        0x20.U,
-        0x32.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x32.U,
-        0x0a.U,
-        0x42.U,
-        0x20.U,
-        0x31.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U,
-        0x41.U,
-        0x20.U,
-        0x32.U,
-        0x20.U,
-        0x33.U,
-        0x0a.U
-      )
-      for (ex <- out_seq) {
-        top.io.out.valid.expect(true.B)
-        top.io.out.bits.expect(ex)
-        top.clock.step()
+      for (ex_str <- lines) {
+        if (ex_str != "") {
+          val ex = Integer.parseInt(ex_str, 16)
+          top.io.out.valid.expect(true.B)
+          top.io.out.bits.expect(ex.U)
+          top.clock.step()
+        }
       }
       top.io.out.valid.expect(false.B)
     }

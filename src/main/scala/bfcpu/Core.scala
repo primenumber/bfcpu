@@ -77,7 +77,9 @@ class Core extends Module {
   val imem_addr_m1 = reg_imem_addr - 1.U
   val data_next_valid = (inst =/= Insts.COMMA || io.in.valid)
   val output_valid = (state === sExecuting && inst === Insts.PERIOD)
-  val block = inst === Insts.COMMA && !io.in.valid
+  val block_in = inst === Insts.COMMA && !io.in.valid
+  val block_out = inst === Insts.PERIOD && !io.out.ready
+  val block = inst === block_in || block_out
 
   val anti_bracket = MuxCase(
     0.U,
@@ -182,7 +184,7 @@ class Core extends Module {
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.OPEN
           reg_imem_addr := imem_addr_m1
-        }.elsewhen(data_next_valid) {
+        }.elsewhen(!block) {
           state := sFetch
           reg_imem_addr := imem_addr_next
           reg_dmem_read_addr := dmem_addr_next

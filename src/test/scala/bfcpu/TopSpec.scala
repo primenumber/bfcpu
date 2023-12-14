@@ -24,7 +24,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
   import Consts._
 
   "brainf*ck cpu" in {
-    test(new Top("Hanoi4.bf.hex")) { top =>
+    test(new Top(Some("Hanoi4.bf.hex"))) { top =>
       top.io.in.initSource()
       top.io.in.setSourceClock(top.clock)
       top.io.out.initSink()

@@ -3,7 +3,7 @@ package bfcpu
 import chisel3._
 import chisel3.util._
 
-class Top(memory_init_file: String) extends Module {
+class Top(memory_init_file: Option[String]) extends Module {
   import Consts._
 
   val io = IO(new Bundle {
@@ -15,7 +15,7 @@ class Top(memory_init_file: String) extends Module {
   })
 
   val imem = Module(
-    new SDPRAM(WORD_BITS, IMEM_ADDR_SIZE, Some(memory_init_file))
+    new SDPRAM(WORD_BITS, IMEM_ADDR_SIZE, memory_init_file)
   )
   val dmem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, None))
   val core = Module(new Core())
@@ -35,6 +35,6 @@ class Top(memory_init_file: String) extends Module {
 
 object Top {
   def main(args: Array[String]): Unit = {
-    emitVerilog(new Top("Hanoi4.bf.hex"))
+    emitVerilog(new Top(None))
   }
 }

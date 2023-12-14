@@ -19,18 +19,18 @@ class Top(memory_init_file: String) extends Module {
   )
   val dmem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, None))
   val core = Module(new Core())
-  val queue = Queue(core.io.out, 1024)
+  val out_queue = Queue(core.io.out, 1024)
+  val in_queue = Queue(io.in, 1024)
 
   core.io.imem_read <> imem.io.read
   core.io.dmem_read <> dmem.io.read
   core.io.dmem_write <> dmem.io.write
-  io.ctrl <> core.io.ctrl
-  io.in <> core.io.in
-  io.out <> queue
-  io.status <> core.io.status
 
-  // imem write is not used yet
   io.imem_write <> imem.io.write
+  io.ctrl <> core.io.ctrl
+  in_queue <> core.io.in
+  io.out <> out_queue
+  io.status <> core.io.status
 }
 
 object Top {

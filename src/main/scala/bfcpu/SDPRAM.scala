@@ -27,12 +27,7 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
 
   val mem = SyncReadMem(1 << addr_bits, UInt(word_width.W))
 
-  memory_init_file match {
-    case Some(path) =>
-      loadMemoryFromFileInline(mem, path)
-    case None =>
-    // nothing to do
-  }
+  memory_init_file.map(loadMemoryFromFileInline(mem, _))
 
   io.read.bits := MuxCase(
     mem.read(io.read.addr),

@@ -21,8 +21,8 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
   import Consts._
 
   val io = IO(new Bundle {
-    val read = new ReadPortIO(word_width, addr_bits);
-    val write = new WritePortIO(word_width, addr_bits);
+    val read = new ReadPortIO(word_width, addr_bits)
+    val write = new WritePortIO(word_width, addr_bits)
   })
 
   val mem = SyncReadMem(1 << addr_bits, UInt(word_width.W))

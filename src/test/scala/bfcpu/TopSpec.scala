@@ -53,7 +53,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         if (isexec == 1 || issfb == 1 || isfb == 1) {
           println(
             s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${data}, state: f${isfetch}e${isexec}o${issfb}c${isfb}, bc: ${cb}"
-          );
+          )
         }
         top.clock.step(1)
       }

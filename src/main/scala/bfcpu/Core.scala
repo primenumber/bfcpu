@@ -5,8 +5,8 @@ import chisel3.util._
 
 object BFCPU {
   object State extends ChiselEnum {
-    val sReset, sReady, sFetch, sExecuting, sStartFindBracket,
-        sFindingBracket, sFinished =
+    val sReset, sReady, sFetch, sExecuting, sStartFindBracket, sFindingBracket,
+        sFinished =
       Value
   }
 }
@@ -109,7 +109,7 @@ class Core extends Module {
   val imem_addr_next = MuxCase(
     imem_addr_p1,
     Seq(
-      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1,
+      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1
     )
   )
 

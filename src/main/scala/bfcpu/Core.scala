@@ -137,11 +137,6 @@ class Core extends Module {
   io.ctrl.finished := reg_finished
   io.imem_read.addr := reg_imem_addr
   io.imem_read.enable := true.B
-  // io.dmem_read.enable := true.B
-  // io.dmem_read.addr := reg_dmem_read_addr
-  // io.dmem_write.addr := reg_dmem_write_addr
-  // io.dmem_write.bits := reg_dmem_write_bits
-  // io.dmem_write.enable := reg_dmem_write_enable
   dcache.io.ctrl.reset := io.ctrl.reset
   dcache.io.ctrl.addr_inc := dmem_addr_inc
   dcache.io.ctrl.addr_dec := dmem_addr_dec

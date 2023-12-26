@@ -38,7 +38,6 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
     )
   )
   val read_enable_delay1 = RegNext(next_read_enable)
-  val read_enable_delay2 = RegNext(read_enable_delay1)
 
   val next_read_addr = MuxCase(
     addr,
@@ -48,7 +47,6 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
     )
   )
   val read_addr_delay1 = RegNext(next_read_addr)
-  val read_addr_delay2 = RegNext(read_addr_delay1)
 
   val next_reg0 = MuxCase(
     regs(0),

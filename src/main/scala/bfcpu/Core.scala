@@ -34,6 +34,7 @@ class StatusReg extends Bundle {
   val imem_addr = Output(UInt(IMEM_ADDR_SIZE.W))
   val dmem_read_addr = Output(UInt(DMEM_ADDR_SIZE.W))
   val dmem_write_addr = Output(UInt(DMEM_ADDR_SIZE.W))
+  val dmem_write_enable = Output(Bool())
   val inst = Output(UInt(WORD_BITS.W))
   val data = Output(UInt(WORD_BITS.W))
   val bracket_count = Output(UInt(IMEM_ADDR_SIZE.W))
@@ -154,6 +155,7 @@ class Core extends Module {
   io.status.inst := inst
   io.status.dmem_read_addr := reg_dmem_read_addr
   io.status.dmem_write_addr := reg_dmem_write_addr
+  io.status.dmem_write_enable := reg_dmem_write_enable
   io.status.data := data
   io.status.bracket_count := reg_count_bracket
   io.status.state_onehot.reset := state === sReset

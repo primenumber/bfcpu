@@ -85,9 +85,10 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
       next_reg0
     )
     regs(1) := MuxCase(
-      next_reg1, Seq(
+      next_reg1,
+      Seq(
         (addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
-        (read_addr_delay1 === next_addr && read_enable_delay1) -> io.mem_read_port.bits,
+        (read_addr_delay1 === next_addr && read_enable_delay1) -> io.mem_read_port.bits
       )
     )
     regs(2) := Mux(

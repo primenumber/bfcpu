@@ -55,6 +55,12 @@ class Core extends Module {
     val status = new StatusReg()
   })
 
+  // DCache
+
+  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE))
+  dcache.io.mem_read_port <> io.dmem_read
+  dcache.io.mem_write_port <> io.dmem_write
+
   // Registers
 
   val state = RegInit(sReset)
@@ -71,7 +77,7 @@ class Core extends Module {
   val reg_imem_addr_delay1 = RegNext(reg_imem_addr)
 
   val inst = io.imem_read.bits
-  val data = io.dmem_read.bits
+  val data = dcache.io.ctrl.rbits
   val in_ready = (state === sExecuting && inst === Insts.COMMA)
   val imem_addr_p1 = reg_imem_addr + 1.U
   val imem_addr_m1 = reg_imem_addr - 1.U
@@ -106,6 +112,9 @@ class Core extends Module {
     )
   )
 
+  val dmem_addr_inc = RegNext(state === sExecuting && inst === Insts.RIGHT)
+  val dmem_addr_dec = RegNext(state === sExecuting && inst === Insts.LEFT)
+
   val imem_addr_next = MuxCase(
     imem_addr_p1,
     Seq(
@@ -127,11 +136,16 @@ class Core extends Module {
   io.ctrl.finished := reg_finished
   io.imem_read.addr := reg_imem_addr
   io.imem_read.enable := true.B
-  io.dmem_read.enable := true.B
-  io.dmem_read.addr := reg_dmem_read_addr
-  io.dmem_write.addr := reg_dmem_write_addr
-  io.dmem_write.bits := reg_dmem_write_bits
-  io.dmem_write.enable := reg_dmem_write_enable
+  //io.dmem_read.enable := true.B
+  //io.dmem_read.addr := reg_dmem_read_addr
+  //io.dmem_write.addr := reg_dmem_write_addr
+  //io.dmem_write.bits := reg_dmem_write_bits
+  //io.dmem_write.enable := reg_dmem_write_enable
+  dcache.io.ctrl.reset := io.ctrl.reset
+  dcache.io.ctrl.addr_inc := dmem_addr_inc
+  dcache.io.ctrl.addr_dec := dmem_addr_dec
+  dcache.io.ctrl.wbits := reg_dmem_write_bits
+  dcache.io.ctrl.wenable := reg_dmem_write_enable
   io.in.ready := in_ready
   io.out.valid := output_valid
   io.out.bits := data

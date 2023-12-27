@@ -86,7 +86,7 @@ class Core extends Module {
   val output_valid = (state === sExecuting && inst === Insts.PERIOD)
   val block_in = inst === Insts.COMMA && !io.in.valid
   val block_out = inst === Insts.PERIOD && !io.out.ready
-  val block = inst === block_in || block_out
+  val block = block_in || block_out
 
   val anti_bracket = MuxCase(
     0.U,

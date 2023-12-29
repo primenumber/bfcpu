@@ -39,29 +39,30 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       top.clock.setTimeout(0)
 
       val status = top.io.status
-      top.clock.step(1)
-      for (i <- 1 to 1001) {
-        val pc = status.imem_addr.peek().litValue
-        val inst = status.inst.peek().litValue.toChar
-        val dp = status.dmem_read_addr.peek().litValue
-        val wa = status.dmem_write_addr.peek().litValue
-        val we = status.dmem_write_enable.peek().litValue
-        val data = status.data.peek().litValue
-        val cb = status.bracket_count.peek().litValue
-        val issfb = status.state_onehot.start_find_bracket.peek().litValue
-        val isfb = status.state_onehot.finding_bracket.peek().litValue
-        val isfetch = status.state_onehot.fetch.peek().litValue
-        val isexec = status.state_onehot.executing.peek().litValue
-        val isfin = status.state_onehot.finished.peek().litValue
-        if (isfin == 0) {
-          println(
-            s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, wa: ${wa}, we: ${we}, data: ${data}, state: f${isfetch}e${isexec}o${issfb}c${isfb}, bc: ${cb}"
-          )
-        }
-        top.clock.step(1)
-      }
+      // top.clock.step(1)
+      // for (i <- 1 to 1001) {
+      //  val pc = status.imem_addr.peek().litValue
+      //  val inst = status.inst.peek().litValue.toChar
+      //  val dp = status.dmem_read_addr.peek().litValue
+      //  val data = status.data.peek().litValue
+      //  val dm1 = status.dm1.peek().litValue
+      //  val dp1 = status.dp1.peek().litValue
+      //  val cb = status.bracket_count.peek().litValue
+      //  val issfb = status.state_onehot.start_find_bracket.peek().litValue
+      //  val isfb = status.state_onehot.finding_bracket.peek().litValue
+      //  val isfetch = status.state_onehot.fetch.peek().litValue
+      //  val isexec = status.state_onehot.executing.peek().litValue
+      //  val isfin = status.state_onehot.finished.peek().litValue
+      //  if (isfin == 0) {
+      //    println(
+      //      s"[cycle=${i}]pc: ${pc}, inst: ${inst}, dp: ${dp}, data: ${dm1}-${data}-${dp1}, state: f${isfetch}e${isexec}o${issfb}c${isfb}, bc: ${cb}"
+      //    )
+      //  }
+      //  top.clock.step(1)
+      // }
 
-      top.clock.step(60000)
+      top.clock.step(10000)
+
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")
 

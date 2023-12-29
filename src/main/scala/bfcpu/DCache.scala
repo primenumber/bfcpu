@@ -17,6 +17,8 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
     val rbits = Output(UInt(word_width.W))
     val rbits_m1 = Output(UInt(word_width.W))
     val rbits_p1 = Output(UInt(word_width.W))
+    val addr_next = Output(UInt(addr_bits.W))
+    val read_addr_delay1 = Output(UInt(addr_bits.W))
     val addr = Output(UInt(addr_bits.W))
     val mem_read_port = Flipped(new ReadPortIO(word_width, addr_bits))
     val mem_write_port = Flipped(new WritePortIO(word_width, addr_bits))
@@ -64,6 +66,8 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
   io.rbits_m1 := regs(0)
   io.rbits_p1 := regs(2)
   io.addr := addr
+  io.addr_next := next_addr
+  io.read_addr_delay1 := read_addr_delay1
   when(io.ctrl.reset) {
     addr := 0.U
     regs(0) := 0.U

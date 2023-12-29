@@ -25,6 +25,8 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
     val write = new WritePortIO(word_width, addr_bits)
   })
 
+  val read_addr_delay1 = RegNext(io.read.addr)
+
   val mem = SyncReadMem(1 << addr_bits, UInt(word_width.W))
 
   memory_init_file.map(loadMemoryFromFileInline(mem, _))
@@ -32,7 +34,7 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
   io.read.bits := MuxCase(
     mem.read(io.read.addr, io.read.enable),
     Seq(
-      (io.write.enable && io.write.addr === io.read.addr) -> io.write.bits
+      (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
     )
   )
 

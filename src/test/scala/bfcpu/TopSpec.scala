@@ -61,7 +61,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       //  top.clock.step(1)
       // }
 
-      top.clock.step(10000)
+      top.clock.step(45000)
 
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")

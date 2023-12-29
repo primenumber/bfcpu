@@ -30,8 +30,10 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
   memory_init_file.map(loadMemoryFromFileInline(mem, _))
 
   io.read.bits := MuxCase(
-    mem.read(io.read.addr),
-    Seq((io.write.enable && io.write.addr === io.read.addr) -> io.write.bits)
+    mem.read(io.read.addr, io.read.enable),
+    Seq(
+      (io.write.enable && io.write.addr === io.read.addr) -> io.write.bits
+    )
   )
 
   when(io.write.enable) {

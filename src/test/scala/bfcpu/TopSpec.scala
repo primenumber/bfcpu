@@ -56,7 +56,9 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         }
         top.clock.step(1)
       }
-      println(s"execute: ${cycles_exec} cycles, finding bracket: ${cycles_fb} cycles")
+      println(
+        s"execute: ${cycles_exec} cycles, finding bracket: ${cycles_fb} cycles"
+      )
 
       top.io.ctrl.finished.expect(true.B)
       println("execution finished")

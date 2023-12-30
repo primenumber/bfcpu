@@ -16,8 +16,12 @@ class WritePortIO(word_width: Int, addr_bits: Int) extends Bundle {
   val bits = Input(UInt(word_width.W))
 }
 
-class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
-    extends Module {
+class SDPRAM(
+    word_width: Int,
+    addr_bits: Int,
+    reg: Boolean,
+    memory_init_file: Option[String]
+) extends Module {
   import Consts._
 
   val io = IO(new Bundle {
@@ -31,12 +35,23 @@ class SDPRAM(word_width: Int, addr_bits: Int, memory_init_file: Option[String])
 
   memory_init_file.map(loadMemoryFromFileInline(mem, _))
 
-  io.read.bits := MuxCase(
-    mem.read(io.read.addr, io.read.enable),
-    Seq(
-      (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
+  if (reg) {
+    io.read.bits := RegNext(
+      MuxCase(
+        mem.read(io.read.addr, io.read.enable),
+        Seq(
+          (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
+        )
+      )
     )
-  )
+  } else {
+    io.read.bits := MuxCase(
+      mem.read(io.read.addr, io.read.enable),
+      Seq(
+        (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
+      )
+    )
+  }
 
   when(io.write.enable) {
     mem.write(io.write.addr, io.write.bits)

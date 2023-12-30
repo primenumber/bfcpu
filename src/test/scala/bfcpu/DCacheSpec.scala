@@ -39,7 +39,7 @@ class DCacheWithMem extends Module {
     val write_bits = Output(UInt(WORD_BITS.W))
   })
   val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE))
-  val mem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, None))
+  val mem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, false, None))
   dcache.io.mem_read_port <> mem.io.read
   dcache.io.mem_write_port <> mem.io.write
   io.ctrl <> dcache.io.ctrl

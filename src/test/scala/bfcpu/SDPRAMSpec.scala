@@ -134,5 +134,27 @@ class SDPRAMSpec extends AnyFreeSpec with ChiselScalatestTester {
         mem.io.read.bits.expect(0x20.U)
       }
     }
+    "should work with forwarding and reg mode" in {
+      test(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, true, None)) { mem =>
+        mem.io.read.enable.poke(true.B)
+        mem.io.read.addr.poke(0.U)
+        mem.io.write.enable.poke(true.B)
+        mem.io.write.addr.poke(0.U)
+        mem.io.write.bits.poke(0x10.U)
+
+        mem.clock.step()
+        mem.io.read.addr.poke(1.U)
+        mem.io.write.addr.poke(1.U)
+        mem.io.write.bits.poke(0x20.U)
+
+        mem.clock.step()
+        mem.io.read.bits.expect(0x10.U)
+        mem.io.read.addr.poke(2.U)
+        mem.io.write.addr.poke(3.U)
+
+        mem.clock.step()
+        mem.io.read.bits.expect(0x20.U)
+      }
+    }
   }
 }

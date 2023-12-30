@@ -124,8 +124,8 @@ class Core extends Module {
       (state === sReady && io.ctrl.start) -> 0.U,
       (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 2.U),
       (state === sExecuting && block) -> if_reg_imem_addr,
-      (state === sFindingBracket && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 1.U),
-      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1
+      (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next =/= 0.U) -> imem_addr_m1,
+      (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 2.U)
     )
   )
 
@@ -179,22 +179,26 @@ class Core extends Module {
       is(sExecuting) {
         when(inst === 0.U) {
           state := sFinished
+          reg_forward_inst := false.B
         }.elsewhen(inst === Insts.OPEN && data === 0.U) {
           state := sFindingBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.CLOSE
+          reg_forward_inst := false.B
         }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
           state := sFindingBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.OPEN
           reg_forward_inst := true.B
+        }.otherwise {
+          reg_forward_inst := false.B
         }
       }
       is(sFindingBracket) {
         when(count_bracket_next === 0.U) {
-          state := sFetch
+          state := sExecuting
           reg_finding_bracket := 0.U
-          reg_forward_inst := false.B
+          reg_forward_inst := reg_finding_bracket === Insts.OPEN
         }.otherwise {
           reg_count_bracket := count_bracket_next
           reg_forward_inst := false.B

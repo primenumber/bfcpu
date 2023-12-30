@@ -116,7 +116,6 @@ class Core extends Module {
     imem_addr_p1,
     Seq(
       (state === sReady && io.ctrl.start) -> 0.U,
-      (state === sExecuting && inst === Insts.OPEN && data === 0.U) -> (ex_reg_imem_addr + 1.U),
       (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 1.U),
       (state === sExecuting && block) -> if_reg_imem_addr,
       (state === sFindingBracket && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 1.U),
@@ -175,7 +174,7 @@ class Core extends Module {
         when(inst === 0.U) {
           state := sFinished
         }.elsewhen(inst === Insts.OPEN && data === 0.U) {
-          state := sStartFindBracket
+          state := sFindingBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.CLOSE
         }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {

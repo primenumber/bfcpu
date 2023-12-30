@@ -43,7 +43,6 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       var cycles_exec = 0
       var cycles_fb = 0
       for (i <- 1 to 45000) {
-        val issfb = status.state_onehot.start_find_bracket.peek().litValue
         val isfb = status.state_onehot.finding_bracket.peek().litValue
         val isfetch = status.state_onehot.fetch.peek().litValue
         val isexec = status.state_onehot.executing.peek().litValue
@@ -51,7 +50,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
         if (isfetch == 1 || isexec == 1) {
           cycles_exec += 1
         }
-        if (issfb == 1 || isfb == 1) {
+        if (isfb == 1) {
           cycles_fb += 1
         }
         top.clock.step(1)

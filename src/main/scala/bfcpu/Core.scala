@@ -5,8 +5,7 @@ import chisel3.util._
 
 object BFCPU {
   object State extends ChiselEnum {
-    val sReset, sReady, sFetch, sExecuting, sStartFindBracket, sFindingBracket,
-        sFinished =
+    val sReset, sReady, sFetch, sExecuting, sFindingBracket, sFinished =
       Value
   }
 }
@@ -24,7 +23,6 @@ class StateOneHot extends Bundle {
   val ready = Output(Bool())
   val fetch = Output(Bool())
   val executing = Output(Bool())
-  val start_find_bracket = Output(Bool())
   val finding_bracket = Output(Bool())
   val finished = Output(Bool())
 }
@@ -72,8 +70,16 @@ class Core extends Module {
   val reg_count_bracket = RegInit(0.U(IMEM_ADDR_SIZE.W))
   val reg_finding_bracket = RegInit(0.U(WORD_BITS.W))
   val reg_finished = RegInit(false.B)
+  val reg_inst_delay1 = RegInit(0.U(WORD_BITS.W))
+  val reg_inst_delay2 = RegNext(reg_inst_delay1)
+  val reg_forward_inst = RegInit(false.B)
 
-  val inst = io.imem_read.bits
+  val inst = MuxCase(
+    io.imem_read.bits,
+    Seq(
+      reg_forward_inst -> reg_inst_delay2
+    )
+  )
   val data = dcache.io.rbits
   val in_ready = (state === sExecuting && inst === Insts.COMMA)
   val imem_addr_p1 = if_reg_imem_addr + 1.U
@@ -116,7 +122,7 @@ class Core extends Module {
     imem_addr_p1,
     Seq(
       (state === sReady && io.ctrl.start) -> 0.U,
-      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 1.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 2.U),
       (state === sExecuting && block) -> if_reg_imem_addr,
       (state === sFindingBracket && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 1.U),
       (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1
@@ -149,11 +155,11 @@ class Core extends Module {
   io.status.state_onehot.ready := state === sReady
   io.status.state_onehot.fetch := state === sFetch
   io.status.state_onehot.executing := state === sExecuting
-  io.status.state_onehot.start_find_bracket := state === sStartFindBracket
   io.status.state_onehot.finding_bracket := state === sFindingBracket
   io.status.state_onehot.finished := state === sFinished
   reg_finished := (state === sFinished)
   if_reg_imem_addr := imem_addr_next
+  reg_inst_delay1 := inst
 
   when(io.ctrl.reset) {
     state := sReset
@@ -178,20 +184,20 @@ class Core extends Module {
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.CLOSE
         }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
-          state := sStartFindBracket
+          state := sFindingBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.OPEN
+          reg_forward_inst := true.B
         }
-      }
-      is(sStartFindBracket) {
-        state := sFindingBracket
       }
       is(sFindingBracket) {
         when(count_bracket_next === 0.U) {
           state := sFetch
           reg_finding_bracket := 0.U
+          reg_forward_inst := false.B
         }.otherwise {
           reg_count_bracket := count_bracket_next
+          reg_forward_inst := false.B
         }
       }
     }

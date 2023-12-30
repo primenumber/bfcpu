@@ -36,21 +36,9 @@ class SDPRAM(
   memory_init_file.map(loadMemoryFromFileInline(mem, _))
 
   if (reg) {
-    io.read.bits := RegNext(
-      MuxCase(
-        mem.read(io.read.addr, io.read.enable),
-        Seq(
-          (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
-        )
-      )
-    )
+    io.read.bits := RegNext(mem.read(io.read.addr, io.read.enable))
   } else {
-    io.read.bits := MuxCase(
-      mem.read(io.read.addr, io.read.enable),
-      Seq(
-        (io.write.enable && io.write.addr === read_addr_delay1) -> io.write.bits
-      )
-    )
+    io.read.bits := mem.read(io.read.addr, io.read.enable)
   }
 
   when(io.write.enable) {

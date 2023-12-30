@@ -104,13 +104,6 @@ class Core extends Module {
   val dmem_addr_inc = (state === sExecuting && inst === Insts.RIGHT)
   val dmem_addr_dec = (state === sExecuting && inst === Insts.LEFT)
 
-  val imem_addr_next = MuxCase(
-    imem_addr_p1,
-    Seq(
-      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1
-    )
-  )
-
   val count_bracket_next = MuxCase(
     reg_count_bracket,
     Seq(
@@ -119,11 +112,23 @@ class Core extends Module {
     )
   )
 
+  val imem_addr_next = MuxCase(
+    imem_addr_p1,
+    Seq(
+      (state === sReady && io.ctrl.start) -> 0.U,
+      (state === sExecuting && inst === Insts.OPEN && data === 0.U) -> (ex_reg_imem_addr + 1.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 1.U),
+      (state === sExecuting && block) -> if_reg_imem_addr,
+      (state === sFindingBracket && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 1.U),
+      (reg_finding_bracket === Insts.OPEN) -> imem_addr_m1
+    )
+  )
+
   val data_wen = (state === sExecuting && data_next_valid)
 
   io.ctrl.ready := (state === sReady)
   io.ctrl.finished := reg_finished
-  io.imem_read.addr := if_reg_imem_addr
+  io.imem_read.addr := imem_addr_next
   io.imem_read.enable := true.B
   dcache.io.ctrl.reset := io.ctrl.reset
   dcache.io.ctrl.addr_inc := dmem_addr_inc
@@ -149,6 +154,7 @@ class Core extends Module {
   io.status.state_onehot.finding_bracket := state === sFindingBracket
   io.status.state_onehot.finished := state === sFinished
   reg_finished := (state === sFinished)
+  if_reg_imem_addr := imem_addr_next
 
   when(io.ctrl.reset) {
     state := sReset
@@ -159,13 +165,11 @@ class Core extends Module {
       }
       is(sReady) {
         when(io.ctrl.start) {
-          if_reg_imem_addr := 0.U
           state := sFetch
         }
       }
       is(sFetch) {
         state := sExecuting
-        if_reg_imem_addr := imem_addr_next
       }
       is(sExecuting) {
         when(inst === 0.U) {
@@ -174,29 +178,20 @@ class Core extends Module {
           state := sStartFindBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.CLOSE
-          if_reg_imem_addr := ex_reg_imem_addr + 1.U
         }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
           state := sStartFindBracket
           reg_count_bracket := 1.U
           reg_finding_bracket := Insts.OPEN
-          if_reg_imem_addr := ex_reg_imem_addr - 1.U
-        }.elsewhen(!block) {
-          if_reg_imem_addr := imem_addr_next
-        }.otherwise {
-          // stall, nothing to do
         }
       }
       is(sStartFindBracket) {
         state := sFindingBracket
-        if_reg_imem_addr := imem_addr_next
       }
       is(sFindingBracket) {
         when(count_bracket_next === 0.U) {
           state := sFetch
-          if_reg_imem_addr := ex_reg_imem_addr + 1.U
           reg_finding_bracket := 0.U
         }.otherwise {
-          if_reg_imem_addr := imem_addr_next
           reg_count_bracket := count_bracket_next
         }
       }

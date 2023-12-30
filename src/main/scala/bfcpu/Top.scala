@@ -15,7 +15,7 @@ class Top(memory_init_file: Option[String]) extends Module {
   })
 
   val imem = Module(
-    new SDPRAM(WORD_BITS, IMEM_ADDR_SIZE, false, memory_init_file)
+    new SDPRAM(WORD_BITS, IMEM_ADDR_SIZE, true, memory_init_file)
   )
   val dmem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, false, None))
   val core = Module(new Core())

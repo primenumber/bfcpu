@@ -49,17 +49,30 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
 
   val next_reg0 = MuxCase(
     regs(0),
-    Seq(io.ctrl.addr_inc -> regs(1), io.ctrl.addr_dec -> DontCare)
+    Seq(
+      (read_addr_delay1 === next_addr - 1.U && read_enable_delay1) -> io.mem_read_port.bits,
+      io.ctrl.addr_inc -> regs(1),
+      io.ctrl.addr_dec -> DontCare
+    )
   )
 
   val next_reg1 = MuxCase(
     regs(1),
-    Seq(io.ctrl.addr_inc -> regs(2), io.ctrl.addr_dec -> regs(0))
+    Seq(
+      (addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
+      (read_addr_delay1 === next_addr && read_enable_delay1) -> io.mem_read_port.bits,
+      io.ctrl.addr_inc -> regs(2),
+      io.ctrl.addr_dec -> regs(0)
+    )
   )
 
   val next_reg2 = MuxCase(
     regs(2),
-    Seq(io.ctrl.addr_inc -> DontCare, io.ctrl.addr_dec -> regs(1))
+    Seq(
+      (read_addr_delay1 === next_addr + 1.U && read_enable_delay1) -> io.mem_read_port.bits,
+      io.ctrl.addr_inc -> DontCare,
+      io.ctrl.addr_dec -> regs(1)
+    )
   )
 
   io.rbits := regs(1)
@@ -84,25 +97,9 @@ class DCache(word_width: Int, addr_bits: Int) extends Module {
     io.mem_write_port.addr := addr
     io.mem_write_port.enable := true.B
     io.mem_write_port.bits := regs(1)
-    regs(0) := MuxCase(
-      next_reg0,
-      Seq(
-        (read_addr_delay1 === next_addr - 1.U && read_enable_delay1) -> io.mem_read_port.bits
-      )
-    )
-    regs(1) := MuxCase(
-      next_reg1,
-      Seq(
-        (addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
-        (read_addr_delay1 === next_addr && read_enable_delay1) -> io.mem_read_port.bits
-      )
-    )
-    regs(2) := MuxCase(
-      next_reg2,
-      Seq(
-        (read_addr_delay1 === next_addr + 1.U && read_enable_delay1) -> io.mem_read_port.bits
-      )
-    )
+    regs(0) := next_reg0
+    regs(1) := next_reg1
+    regs(2) := next_reg2
     addr := next_addr
   }
 }

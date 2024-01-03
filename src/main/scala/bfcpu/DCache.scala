@@ -64,7 +64,11 @@ class DCache(word_width: Int, addr_bits: Int, reg_length: Int) extends Module {
       x,
       Seq(
         ((i == middle).B && addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
-        (read_addr_delay1 + middle.U === next_addr + i.U && read_enable_delay1) -> io.mem_read_port.bits,
+        if (i > middle) {
+          (read_addr_delay1 === next_addr + (i - middle).U && read_enable_delay1) -> io.mem_read_port.bits
+        } else {
+          (read_addr_delay1 + (middle - i).U === next_addr && read_enable_delay1) -> io.mem_read_port.bits
+        },
         io.ctrl.addr_inc -> inc_reg,
         io.ctrl.addr_dec -> dec_reg
       )

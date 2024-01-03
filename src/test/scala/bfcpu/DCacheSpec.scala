@@ -38,7 +38,7 @@ class DCacheWithMem extends Module {
     val write_enable = Output(Bool())
     val write_bits = Output(UInt(WORD_BITS.W))
   })
-  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE))
+  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3))
   val mem = Module(new SDPRAM(WORD_BITS, DMEM_ADDR_SIZE, false, None))
   dcache.io.mem_read_port <> mem.io.read
   dcache.io.mem_write_port <> mem.io.write
@@ -62,7 +62,7 @@ class DCacheSpec extends AnyFreeSpec with ChiselScalatestTester {
 
   "DCache" - {
     "should forward previous value" in {
-      test(new DCache(WORD_BITS, DMEM_ADDR_SIZE)) { dcache =>
+      test(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3)) { dcache =>
         dcache.io.ctrl.reset.poke(true.B)
         dcache.io.ctrl.wenable.poke(false.B)
         dcache.io.ctrl.wbits.poke(0.U)
@@ -128,7 +128,7 @@ class DCacheSpec extends AnyFreeSpec with ChiselScalatestTester {
       }
     }
     "should work with wenable" in {
-      test(new DCache(WORD_BITS, DMEM_ADDR_SIZE)) { dcache =>
+      test(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3)) { dcache =>
         dcache.io.ctrl.reset.poke(true.B)
         dcache.io.ctrl.wenable.poke(false.B)
         dcache.io.ctrl.wbits.poke(0.U)

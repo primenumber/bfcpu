@@ -56,7 +56,7 @@ class Core extends Module {
 
   // DCache
 
-  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE))
+  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3))
   dcache.io.mem_read_port <> io.dmem_read
   dcache.io.mem_write_port <> io.dmem_write
 

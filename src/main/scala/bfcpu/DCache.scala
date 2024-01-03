@@ -11,17 +11,21 @@ class DCacheIO(word_width: Int, addr_bits: Int) extends Bundle {
   val addr_dec = Input(Bool())
 }
 
+class DCacheStateIO(word_width: Int, addr_bits: Int) extends Bundle {
+  val rbits_m1 = Output(UInt(word_width.W))
+  val rbits_p1 = Output(UInt(word_width.W))
+  val addr = Output(UInt(addr_bits.W))
+  val addr_next = Output(UInt(addr_bits.W))
+  val read_addr_delay1 = Output(UInt(addr_bits.W))
+}
+
 class DCache(word_width: Int, addr_bits: Int, reg_length: Int) extends Module {
   val io = IO(new Bundle {
     val ctrl = new DCacheIO(word_width, addr_bits)
     val rbits = Output(UInt(word_width.W))
-    val rbits_m1 = Output(UInt(word_width.W))
-    val rbits_p1 = Output(UInt(word_width.W))
-    val addr_next = Output(UInt(addr_bits.W))
-    val read_addr_delay1 = Output(UInt(addr_bits.W))
-    val addr = Output(UInt(addr_bits.W))
     val mem_read_port = Flipped(new ReadPortIO(word_width, addr_bits))
     val mem_write_port = Flipped(new WritePortIO(word_width, addr_bits))
+    val state = new DCacheStateIO(word_width, addr_bits)
   })
 
   val addr = RegInit(0.U(addr_bits.W))
@@ -75,12 +79,15 @@ class DCache(word_width: Int, addr_bits: Int, reg_length: Int) extends Module {
     )
   }
 
-  io.rbits_m1 := regs(middle - 1)
   io.rbits := regs(middle)
-  io.rbits_p1 := regs(middle + 1)
-  io.addr := addr
-  io.addr_next := next_addr
-  io.read_addr_delay1 := read_addr_delay1
+
+  // states
+  io.state.rbits_m1 := regs(middle - 1)
+  io.state.rbits_p1 := regs(middle + 1)
+  io.state.addr := addr
+  io.state.addr_next := next_addr
+  io.state.read_addr_delay1 := read_addr_delay1
+
   when(io.ctrl.reset) {
     addr := 0.U
     for (reg <- regs) {

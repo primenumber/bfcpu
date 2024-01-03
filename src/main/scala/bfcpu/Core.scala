@@ -30,11 +30,8 @@ class StateOneHot extends Bundle {
 class StatusReg extends Bundle {
   import Consts._
   val imem_addr = Output(UInt(IMEM_ADDR_SIZE.W))
-  val dmem_read_addr = Output(UInt(DMEM_ADDR_SIZE.W))
   val inst = Output(UInt(WORD_BITS.W))
   val data = Output(UInt(WORD_BITS.W))
-  val dm1 = Output(UInt(WORD_BITS.W))
-  val dp1 = Output(UInt(WORD_BITS.W))
   val bracket_count = Output(UInt(IMEM_ADDR_SIZE.W))
   val state_onehot = new StateOneHot()
 }
@@ -47,18 +44,12 @@ class Core extends Module {
   val io = IO(new Bundle {
     val ctrl = new ControlIO()
     val imem_read = Flipped(new ReadPortIO(WORD_BITS, IMEM_ADDR_SIZE))
-    val dmem_read = Flipped(new ReadPortIO(WORD_BITS, DMEM_ADDR_SIZE))
-    val dmem_write = Flipped(new WritePortIO(WORD_BITS, DMEM_ADDR_SIZE))
+    val dcache_ctrl = Flipped(new DCacheIO(WORD_BITS, IMEM_ADDR_SIZE))
+    val dcache_rbits = Input(UInt(WORD_BITS.W))
     val in = Flipped(Decoupled(UInt(WORD_BITS.W)))
     val out = Decoupled(UInt(WORD_BITS.W))
     val status = new StatusReg()
   })
-
-  // DCache
-
-  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3))
-  dcache.io.mem_read_port <> io.dmem_read
-  dcache.io.mem_write_port <> io.dmem_write
 
   // Registers
 
@@ -80,7 +71,7 @@ class Core extends Module {
       reg_forward_inst -> reg_inst_delay2
     )
   )
-  val data = dcache.io.rbits
+  val data = io.dcache_rbits
   val in_ready = (state === sExecuting && inst === Insts.COMMA)
   val imem_addr_p1 = if_reg_imem_addr + 1.U
   val imem_addr_m1 = if_reg_imem_addr - 1.U
@@ -135,21 +126,18 @@ class Core extends Module {
   io.ctrl.finished := reg_finished
   io.imem_read.addr := imem_addr_next
   io.imem_read.enable := true.B
-  dcache.io.ctrl.reset := io.ctrl.reset
-  dcache.io.ctrl.addr_inc := dmem_addr_inc
-  dcache.io.ctrl.addr_dec := dmem_addr_dec
-  dcache.io.ctrl.wbits := data_next
-  dcache.io.ctrl.wenable := (state === sExecuting && !block)
+  io.dcache_ctrl.reset := io.ctrl.reset
+  io.dcache_ctrl.addr_inc := dmem_addr_inc
+  io.dcache_ctrl.addr_dec := dmem_addr_dec
+  io.dcache_ctrl.wbits := data_next
+  io.dcache_ctrl.wenable := (state === sExecuting && !block)
   io.in.ready := in_ready
   io.out.valid := output_valid
   io.out.bits := data
 
   io.status.imem_addr := ex_reg_imem_addr
   io.status.inst := inst
-  io.status.dmem_read_addr := dcache.io.addr
   io.status.data := data
-  io.status.dm1 := dcache.io.rbits_m1
-  io.status.dp1 := dcache.io.rbits_p1
   io.status.bracket_count := reg_count_bracket
   io.status.state_onehot.reset := state === sReset
   io.status.state_onehot.ready := state === sReady

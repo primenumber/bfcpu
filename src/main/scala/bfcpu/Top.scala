@@ -21,10 +21,13 @@ class Top(memory_init_file: Option[String]) extends Module {
   val core = Module(new Core())
   val out_queue = Queue(core.io.out, 1024)
   val in_queue = Queue(io.in, 1024)
+  val dcache = Module(new DCache(WORD_BITS, DMEM_ADDR_SIZE, 3))
 
-  core.io.imem_read <> imem.io.read
-  core.io.dmem_read <> dmem.io.read
-  core.io.dmem_write <> dmem.io.write
+  core.io.imem_read :<>= imem.io.read
+  dcache.io.mem_read_port :<>= dmem.io.read
+  dcache.io.mem_write_port :<>= dmem.io.write
+  core.io.dcache_ctrl :<>= dcache.io.ctrl
+  core.io.dcache_rbits := dcache.io.rbits
 
   io.imem_write <> imem.io.write
   io.ctrl <> core.io.ctrl

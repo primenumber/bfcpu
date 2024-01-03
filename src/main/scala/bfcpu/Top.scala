@@ -29,11 +29,11 @@ class Top(memory_init_file: Option[String]) extends Module {
   core.io.dcache_ctrl :<>= dcache.io.ctrl
   core.io.dcache_rbits := dcache.io.rbits
 
-  io.imem_write <> imem.io.write
-  io.ctrl <> core.io.ctrl
-  in_queue <> core.io.in
-  io.out <> out_queue
-  io.status <> core.io.status
+  io.imem_write :<>= imem.io.write
+  io.ctrl :<>= core.io.ctrl
+  core.io.in :<>= in_queue
+  io.out :<>= out_queue
+  io.status :<>= core.io.status
 }
 
 object Top {

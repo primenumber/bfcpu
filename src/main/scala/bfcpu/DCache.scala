@@ -52,32 +52,33 @@ class DCache(word_width: Int, addr_bits: Int, reg_length: Int) extends Module {
   )
   val read_addr_delay1 = RegNext(next_read_addr)
 
-  val next_regs = for ((x, i) <- regs.zipWithIndex)
-  yield {
-    val inc_reg = if (i < reg_length - 1) {
-      regs(i + 1)
-    } else {
-      DontCare
-    }
-    val dec_reg = if (i > 0) {
-      regs(i - 1)
-    } else {
-      DontCare
-    }
-    MuxCase(
-      x,
-      Seq(
-        ((i == middle).B && addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
-        if (i > middle) {
-          (read_addr_delay1 === next_addr + (i - middle).U && read_enable_delay1) -> io.mem_read_port.bits
+  val next_regs =
+    for ((x, i) <- regs.zipWithIndex)
+      yield {
+        val inc_reg = if (i < reg_length - 1) {
+          regs(i + 1)
         } else {
-          (read_addr_delay1 + (middle - i).U === next_addr && read_enable_delay1) -> io.mem_read_port.bits
-        },
-        io.ctrl.addr_inc -> inc_reg,
-        io.ctrl.addr_dec -> dec_reg
-      )
-    )
-  }
+          DontCare
+        }
+        val dec_reg = if (i > 0) {
+          regs(i - 1)
+        } else {
+          DontCare
+        }
+        MuxCase(
+          x,
+          Seq(
+            ((i == middle).B && addr === next_addr && io.ctrl.wenable) -> io.ctrl.wbits,
+            if (i > middle) {
+              (read_addr_delay1 === next_addr + (i - middle).U && read_enable_delay1) -> io.mem_read_port.bits
+            } else {
+              (read_addr_delay1 + (middle - i).U === next_addr && read_enable_delay1) -> io.mem_read_port.bits
+            },
+            io.ctrl.addr_inc -> inc_reg,
+            io.ctrl.addr_dec -> dec_reg
+          )
+        )
+      }
 
   io.rbits := regs(middle)
 

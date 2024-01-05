@@ -49,6 +49,8 @@ class Core extends Module {
     val in = Flipped(Decoupled(UInt(WORD_BITS.W)))
     val out = Decoupled(UInt(WORD_BITS.W))
     val status = new StatusReg()
+    val btb_query = Flipped(new BTBQueryIO(WORD_BITS, IMEM_ADDR_SIZE))
+    val btb_update = Flipped(new BTBUpdateIO(WORD_BITS, IMEM_ADDR_SIZE))
   })
 
   // Registers
@@ -56,7 +58,6 @@ class Core extends Module {
   val state = RegInit(sReset)
 
   val if_reg_imem_addr = RegInit(0.U(IMEM_ADDR_SIZE.W))
-
   val ex_reg_imem_addr = RegNext(if_reg_imem_addr)
   val reg_count_bracket = RegInit(0.U(IMEM_ADDR_SIZE.W))
   val reg_finding_bracket = RegInit(0.U(WORD_BITS.W))
@@ -64,11 +65,17 @@ class Core extends Module {
   val reg_inst_delay1 = RegInit(0.U(WORD_BITS.W))
   val reg_inst_delay2 = RegNext(reg_inst_delay1)
   val reg_forward_inst = RegInit(false.B)
+  val reg_use_inst_from_btb = RegInit(false.B)
+  val reg_inst_from_btb = RegInit(0.U(WORD_BITS.W))
+  val reg_next_write_btb = RegInit(false.B)
+  val reg_branch_addr = RegInit(0.U(IMEM_ADDR_SIZE.W))
+  val reg_target_addr = RegInit(0.U(IMEM_ADDR_SIZE.W))
 
   val inst = MuxCase(
     io.imem_read.bits,
     Seq(
-      reg_forward_inst -> reg_inst_delay2
+      reg_forward_inst -> reg_inst_delay2,
+      reg_use_inst_from_btb -> reg_inst_from_btb
     )
   )
   val data = io.dcache_rbits
@@ -113,7 +120,9 @@ class Core extends Module {
     imem_addr_p1,
     Seq(
       (state === sReady && io.ctrl.start) -> 0.U,
-      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U) -> (ex_reg_imem_addr - 2.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && !io.btb_query.valid) -> (ex_reg_imem_addr - 2.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && io.btb_query.valid) -> (io.btb_query.target_addr + 2.U),
+      (state === sExecuting && inst === Insts.OPEN && data === 0.U && io.btb_query.valid) -> (io.btb_query.target_addr + 2.U),
       (state === sExecuting && block) -> if_reg_imem_addr,
       (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next =/= 0.U) -> imem_addr_m1,
       (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 2.U)
@@ -149,6 +158,7 @@ class Core extends Module {
   if_reg_imem_addr := imem_addr_next
   reg_inst_delay1 := inst
 
+  // state
   when(io.ctrl.reset) {
     state := sReset
   }.otherwise {
@@ -167,31 +177,84 @@ class Core extends Module {
       is(sExecuting) {
         when(inst === 0.U) {
           state := sFinished
-          reg_forward_inst := false.B
-        }.elsewhen(inst === Insts.OPEN && data === 0.U) {
+        }.elsewhen(inst === Insts.OPEN && data === 0.U && !io.btb_query.valid) {
           state := sFindingBracket
-          reg_count_bracket := 1.U
-          reg_finding_bracket := Insts.CLOSE
-          reg_forward_inst := false.B
-        }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
+        }.elsewhen(inst === Insts.CLOSE && data =/= 0.U && !io.btb_query.valid) {
           state := sFindingBracket
-          reg_count_bracket := 1.U
-          reg_finding_bracket := Insts.OPEN
-          reg_forward_inst := true.B
-        }.otherwise {
-          reg_forward_inst := false.B
         }
       }
       is(sFindingBracket) {
         when(count_bracket_next === 0.U) {
           state := sExecuting
-          reg_finding_bracket := 0.U
-          reg_forward_inst := reg_finding_bracket === Insts.OPEN
-        }.otherwise {
-          reg_count_bracket := count_bracket_next
-          reg_forward_inst := false.B
         }
       }
     }
   }
+
+  // bracket finder
+  switch(state) {
+    is(sExecuting) {
+      when(inst === 0.U) {
+        reg_use_inst_from_btb := false.B
+        reg_forward_inst := false.B
+      }.elsewhen(inst === Insts.OPEN && data === 0.U) {
+        when (io.btb_query.valid) {
+          reg_use_inst_from_btb := true.B
+        }.otherwise{
+          reg_use_inst_from_btb := false.B
+          reg_count_bracket := 1.U
+          reg_finding_bracket := Insts.CLOSE
+          reg_forward_inst := false.B
+          reg_branch_addr := ex_reg_imem_addr
+        }
+      }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
+        when (io.btb_query.valid) {
+          reg_use_inst_from_btb := true.B
+        }.otherwise{
+          reg_use_inst_from_btb := false.B
+          reg_count_bracket := 1.U
+          reg_finding_bracket := Insts.OPEN
+          reg_forward_inst := true.B
+          reg_branch_addr := ex_reg_imem_addr
+        }
+      }.otherwise {
+        reg_use_inst_from_btb := false.B
+        reg_forward_inst := false.B
+      }
+    }
+    is(sFindingBracket) {
+      when(count_bracket_next === 0.U) {
+        reg_finding_bracket := 0.U
+        reg_forward_inst := reg_finding_bracket === Insts.OPEN
+        reg_target_addr := ex_reg_imem_addr
+      }.otherwise {
+        reg_count_bracket := count_bracket_next
+        reg_forward_inst := false.B
+      }
+    }
+  }
+
+  when(io.ctrl.reset) {
+    reg_next_write_btb := false.B
+  }.otherwise {
+    switch(state) {
+      is(sExecuting) {
+        reg_next_write_btb := false.B
+      }
+      is(sFindingBracket) {
+        when(count_bracket_next === 0.U) {
+          reg_next_write_btb := true.B
+        }
+      }
+    }
+  }
+
+  reg_inst_from_btb := io.btb_query.next_inst
+  io.btb_update.valid := reg_next_write_btb
+  io.btb_update.addr := reg_branch_addr
+  io.btb_update.target_addr := reg_target_addr
+  io.btb_update.next_inst := inst
+
+  io.btb_query.enable := true.B
+  io.btb_query.addr := imem_addr_next
 }

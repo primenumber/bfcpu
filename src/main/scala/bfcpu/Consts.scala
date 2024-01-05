@@ -6,6 +6,8 @@ object Consts {
   val WORD_BITS = 8;
   val IMEM_ADDR_SIZE = 14;
   val DMEM_ADDR_SIZE = 14;
+  val BTB_ADDR_SIZE = 8;
+  val BTB_WORD_SIZE = WORD_BITS + 2 * IMEM_ADDR_SIZE - BTB_ADDR_SIZE + 1
 }
 
 object Insts {

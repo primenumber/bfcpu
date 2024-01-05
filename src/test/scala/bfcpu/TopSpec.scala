@@ -39,14 +39,24 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       top.clock.setTimeout(0)
 
       val status = top.io.status
+      val btb_s = top.io.btb_status
       top.clock.step(1)
       var cycles_exec = 0
       var cycles_fb = 0
-      for (i <- 1 to 38000) {
+      //var printed = 0
+      for (i <- 1 to 21000) {
+        val imem_addr = status.imem_addr.peek().litValue
         val isfb = status.state_onehot.finding_bracket.peek().litValue
         val isfetch = status.state_onehot.fetch.peek().litValue
         val isexec = status.state_onehot.executing.peek().litValue
         val isfin = status.state_onehot.finished.peek().litValue
+        val btb_valid = btb_s.valid.peek().litValue
+        val btb_target_addr = btb_s.target_addr.peek().litValue
+        val btb_next_inst = btb_s.next_inst.peek().litValue
+        //if (printed < 1000) {
+        //  println(s"${isexec} ${imem_addr} ${btb_valid} ${btb_target_addr} ${btb_next_inst}")
+        //  printed += 1
+        //}
         if (isfetch == 1 || isexec == 1) {
           cycles_exec += 1
         }

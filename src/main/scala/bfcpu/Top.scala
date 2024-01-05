@@ -43,7 +43,9 @@ class Top(memory_init_file: Option[String]) extends Module {
   core.io.btb_update :<>= btb.io.update
 
   io.imem_write :<>= imem.io.write
-  io.ctrl :<>= core.io.ctrl
+  io.ctrl :>= core.io.ctrl
+  io.ctrl.ready := core.io.ctrl.ready && btb.io.ready
+  io.ctrl.finished := core.io.ctrl.finished
   core.io.in :<>= in_queue
   io.out :<>= out_queue
   io.status :<>= core.io.status

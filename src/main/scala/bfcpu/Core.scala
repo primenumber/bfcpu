@@ -116,13 +116,15 @@ class Core extends Module {
     )
   )
 
+  val btb_valid = io.btb_query.valid && !reg_forward_inst && !reg_use_inst_from_btb
+
   val imem_addr_next = MuxCase(
     imem_addr_p1,
     Seq(
       (state === sReady && io.ctrl.start) -> 0.U,
-      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && !io.btb_query.valid) -> (ex_reg_imem_addr - 2.U),
-      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && io.btb_query.valid) -> (io.btb_query.target_addr + 2.U),
-      (state === sExecuting && inst === Insts.OPEN && data === 0.U && io.btb_query.valid) -> (io.btb_query.target_addr + 2.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && !btb_valid) -> (ex_reg_imem_addr - 2.U),
+      (state === sExecuting && inst === Insts.CLOSE && data =/= 0.U && btb_valid) -> (io.btb_query.target_addr + 2.U),
+      (state === sExecuting && inst === Insts.OPEN && data === 0.U && btb_valid) -> (io.btb_query.target_addr + 2.U),
       (state === sExecuting && block) -> if_reg_imem_addr,
       (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next =/= 0.U) -> imem_addr_m1,
       (state === sFindingBracket && reg_finding_bracket === Insts.OPEN && count_bracket_next === 0.U) -> (ex_reg_imem_addr + 2.U)
@@ -177,9 +179,9 @@ class Core extends Module {
       is(sExecuting) {
         when(inst === 0.U) {
           state := sFinished
-        }.elsewhen(inst === Insts.OPEN && data === 0.U && !io.btb_query.valid) {
+        }.elsewhen(inst === Insts.OPEN && data === 0.U && !btb_valid) {
           state := sFindingBracket
-        }.elsewhen(inst === Insts.CLOSE && data =/= 0.U && !io.btb_query.valid) {
+        }.elsewhen(inst === Insts.CLOSE && data =/= 0.U && !btb_valid) {
           state := sFindingBracket
         }
       }
@@ -198,7 +200,7 @@ class Core extends Module {
         reg_use_inst_from_btb := false.B
         reg_forward_inst := false.B
       }.elsewhen(inst === Insts.OPEN && data === 0.U) {
-        when (io.btb_query.valid) {
+        when (btb_valid) {
           reg_use_inst_from_btb := true.B
         }.otherwise{
           reg_use_inst_from_btb := false.B
@@ -208,7 +210,7 @@ class Core extends Module {
           reg_branch_addr := ex_reg_imem_addr
         }
       }.elsewhen(inst === Insts.CLOSE && data =/= 0.U) {
-        when (io.btb_query.valid) {
+        when (btb_valid) {
           reg_use_inst_from_btb := true.B
         }.otherwise{
           reg_use_inst_from_btb := false.B

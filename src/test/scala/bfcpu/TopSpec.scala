@@ -33,7 +33,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       top.io.ctrl.reset.poke(true.B)
       top.clock.step(10)
       top.io.ctrl.reset.poke(false.B)
-      top.clock.step(10)
+      top.clock.step(1 << BTB_ADDR_SIZE)
       top.io.ctrl.ready.expect(true.B)
       top.io.ctrl.start.poke(true.B)
       top.clock.setTimeout(0)

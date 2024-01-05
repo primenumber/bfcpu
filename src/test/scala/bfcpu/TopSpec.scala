@@ -44,7 +44,7 @@ class TopSpec extends AnyFreeSpec with ChiselScalatestTester {
       var cycles_exec = 0
       var cycles_fb = 0
       //var printed = 0
-      for (i <- 1 to 21000) {
+      for (i <- 1 to 17000) {
         val imem_addr = status.imem_addr.peek().litValue
         val isfb = status.state_onehot.finding_bracket.peek().litValue
         val isfetch = status.state_onehot.fetch.peek().litValue

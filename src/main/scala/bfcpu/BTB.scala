@@ -63,8 +63,8 @@ class BranchTargetBuffer(word_width: Int, addr_bits: Int, depth_bits: Int)
     io.cmem_write.bits := DontCare
     io.cmem_write.enable := false.B
   }.elsewhen(io.update.valid) {
-    val key = io.update.addr(addr_bits - 1, tag_bits)
-    val tag = io.update.addr(tag_bits - 1, 0)
+    val key = io.update.addr(depth_bits - 1, 0)
+    val tag = io.update.addr(addr_bits - 1, depth_bits)
     io.cmem_write.addr := key
     io.cmem_write.bits := Cat(
       true.B,
@@ -82,14 +82,14 @@ class BranchTargetBuffer(word_width: Int, addr_bits: Int, depth_bits: Int)
   // Read
 
   val query_addr_delay = RegNext(RegNext(io.query.addr))
-  io.cmem_read.addr := io.query.addr(addr_bits - 1, tag_bits)
+  io.cmem_read.addr := io.query.addr(depth_bits - 1, 0)
   io.cmem_read.enable := io.query.enable
   val data = io.cmem_read.bits
   val valid = data(entry_width - 1)
   val tag = data(tag_bits + addr_bits + word_width - 1, addr_bits + word_width)
   val target_addr = data(addr_bits + word_width - 1, word_width)
   val next_inst = data(word_width - 1, 0)
-  io.query.valid := valid && tag === query_addr_delay(tag_bits - 1, 0)
+  io.query.valid := valid && tag === query_addr_delay(addr_bits - 1, depth_bits)
   io.query.target_addr := target_addr
   io.query.next_inst := next_inst
 
